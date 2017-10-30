@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_serverConnTip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dip"
+        android:layout_marginTop="10dip" />
+
+    <EditText
+        android:id="@+id/et_serverChatContent"
+        android:layout_width="match_parent"
+        android:layout_height="150dip"
+        android:layout_margin="5dip"
+        android:background="#aaa"
+        android:cursorVisible="false" />
+
+    <EditText
+        android:id="@+id/et_serverSendMsg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btn_serverSendMsg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="发送" />
+
+</LinearLayout>
