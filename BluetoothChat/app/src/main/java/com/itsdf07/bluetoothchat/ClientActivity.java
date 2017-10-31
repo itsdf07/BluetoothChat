@@ -1,30 +1,36 @@
 package com.itsdf07.bluetoothchat;
 
+import java.util.ArrayList;
 import java.util.Date;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.itsdf07.bluetoothchat.bluetoothutil.BluetoothClientService;
 import com.itsdf07.bluetoothchat.bluetoothutil.BluetoothTools;
 import com.itsdf07.bluetoothchat.bluetoothutil.TransmitBean;
+import com.itsdf07.bluetoothchat.common.DeviceAdapter;
 import com.itsdf07.bluetoothchat.common.log.ALog;
 
-
-public class ClientActivity extends AppCompatActivity {
+public class ClientActivity extends AppCompatActivity implements
+        AdapterView.OnItemClickListener,
+        BluetoothClientService.IClientCallBack {
 
     /**
      * 服务端与客户端是否连接成功的提示
@@ -44,9 +50,19 @@ public class ClientActivity extends AppCompatActivity {
     private Button mBtnSendMsg;
 
     /**
-     * 未搜索到设备的次数统计
+     * 搜索蓝牙设备
      */
-    int mNotFoundCount = 1;
+    private Button mBtnSearchServer;
+
+    /**
+     * 展示搜索到蓝牙设备的列表
+     */
+    private ListView mLvDevices;
+    private DeviceAdapter mDeviceAdapter;
+
+    ArrayList<BluetoothDevice> mDeviceData = new ArrayList();
+
+    private BluetoothClientService mClientService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +75,7 @@ public class ClientActivity extends AppCompatActivity {
     private void init() {
         initView();
         initData();
+        startClientService();
     }
 
     private void initView() {
@@ -66,92 +83,128 @@ public class ClientActivity extends AppCompatActivity {
         mEtChatContent = (EditText) findViewById(R.id.et_clientChatContent);
         mEtSendMsg = (EditText) findViewById(R.id.et_clientSendMsg);
         mBtnSendMsg = (Button) findViewById(R.id.btn_clientSendMsg);
-        mBtnSendMsg.setOnClickListener(onSendMsgClickListener);
+        mBtnSendMsg.setOnClickListener(onClickListener);
+        mBtnSearchServer = (Button) findViewById(R.id.btn_searchServer);
+        mBtnSearchServer.setOnClickListener(onClickListener);
+
+        mLvDevices = (ListView) findViewById(R.id.lv_devices);
+        mDeviceAdapter = new DeviceAdapter(this, mDeviceData);
+        mLvDevices.setAdapter(mDeviceAdapter);
+        mLvDevices.setOnItemClickListener(this);
     }
 
     private void initData() {
+    }
+
+    /**
+     * 启动服务
+     */
+    private void startClientService() {
         // 开启后台service
-        Intent startService = new Intent(this, BluetoothClientService.class);
-        startService(startService);
-
-        // 注册BoradcasrReceiver
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothTools.ACTION_NOT_FOUND_SERVER);
-        intentFilter.addAction(BluetoothTools.ACTION_FOUND_DEVICE);
-        intentFilter.addAction(BluetoothTools.ACTION_DATA_TO_GAME);
-        intentFilter.addAction(BluetoothTools.ACTION_CONNECT_SUCCESS);
-        intentFilter.addAction(BluetoothTools.ACTION_CONNECT_ERROR);
-
-        registerReceiver(mBroadcastReceiver, intentFilter);
+        Intent startService = new Intent(ClientActivity.this, BluetoothClientService.class);
+        //绑定Service
+        bindService(startService, mClientServiceConn, Context.BIND_AUTO_CREATE);
     }
 
     @Override
-    protected void onStop() {
-        ALog.d("...");
-        // 关闭后台Service
-        Intent startService = new Intent(BluetoothTools.ACTION_STOP_SERVICE);
-        sendBroadcast(startService);
-
-        unregisterReceiver(mBroadcastReceiver);
-        super.onStop();
+    protected void onDestroy() {
+        if (mClientService != null) {
+            mClientService.onCancelDiscvery();
+            mClientService = null;
+        }
+        unbindService(mClientServiceConn);
+        super.onDestroy();
     }
 
-    private OnClickListener onSendMsgClickListener = new OnClickListener() {
+
+    private OnClickListener onClickListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
-            String msgContent = mEtSendMsg.getText().toString().trim();
-            ALog.d("msgContent = %s", msgContent);
-            // 发送消息
-            if (TextUtils.isEmpty(msgContent)) {
-                Toast.makeText(ClientActivity.this, "输入不能为空", Toast.LENGTH_SHORT).show();
-            } else {
-                // 发送消息
-                TransmitBean data = new TransmitBean();
-                data.setMsg(msgContent);
-                Intent sendDataIntent = new Intent(BluetoothTools.ACTION_DATA_TO_SERVICE);
-                sendDataIntent.putExtra(BluetoothTools.DATA, data);
-                sendBroadcast(sendDataIntent);
+            switch (v.getId()) {
+                case R.id.btn_clientSendMsg:
+                    String msgContent = mEtSendMsg.getText().toString().trim();
+                    ALog.d("msgContent = %s", msgContent);
+                    // 发送消息
+                    if (TextUtils.isEmpty(msgContent)) {
+                        Toast.makeText(ClientActivity.this, "输入不能为空", Toast.LENGTH_SHORT).show();
+                    } else {
+                        // 发送消息
+                        TransmitBean data = new TransmitBean();
+                        data.setMsg(msgContent);
+                        mClientService.onSendMsg(data);
 
-                msgContent = "to remote " + new Date().toLocaleString()
-                        + " :\r\n" + msgContent + "\r\n";
-                mEtChatContent.append(msgContent);
+                        msgContent = "to remote " + new Date().toLocaleString()
+                                + " :\r\n" + msgContent + "\r\n";
+                        mEtChatContent.append(msgContent);
+                    }
+                    break;
+                case R.id.btn_searchServer:
+                    mClientService.onFoundBTDevice();
+                    break;
             }
         }
     };
 
-    // 广播接收器
-    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        mClientService.onConnectBTDevice(mDeviceData.get(position));
+    }
+
+    ServiceConnection mClientServiceConn = new ServiceConnection() {
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            ALog.d(" ...");
+        }
 
         @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            ALog.d("action = %s", action);
-            if (BluetoothTools.ACTION_NOT_FOUND_SERVER.equals(action)) {
-                // 未发现设备
-                mTvServerConnStatusTip.append("未发现设备" + mNotFoundCount + "次\r\n");
-                mNotFoundCount++;
-            } else if (BluetoothTools.ACTION_FOUND_DEVICE.equals(action)) {
-                // 获取到设备对象
-                BluetoothDevice device = (BluetoothDevice) intent.getExtras().get(BluetoothTools.DEVICE);
-
-                String address = device.getAddress();
-                String name = device.getName();
-                Log.e(BluetoothTools.TAG, "name =" + name + ",address = " + address);
-            } else if (BluetoothTools.ACTION_CONNECT_SUCCESS.equals(action)) {
-                // 连接成功
-                mTvServerConnStatusTip.append("连接成功");
-                mBtnSendMsg.setEnabled(true);
-            } else if (BluetoothTools.ACTION_DATA_TO_GAME.equals(action)) {
-                // 接收数据
-                TransmitBean data = (TransmitBean) intent.getExtras()
-                        .getSerializable(BluetoothTools.DATA);
-                String msg = "from server " + new Date().toLocaleString()
-                        + " :\r\n" + data.getMsg() + "\r\n";
-                mEtChatContent.append(msg);
-
-            } else if (BluetoothTools.ACTION_CONNECT_ERROR.equals(action)) {
-                mEtChatContent.append("连接失败");
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            //返回一个MsgService对象
+            mClientService = ((BluetoothClientService.ClientServiceBinder) service).getService();
+            if (mClientService != null) {
+                mClientService.setClientCallback(ClientActivity.this);
             }
         }
     };
+
+    @Override
+    public void addBTDevice(BluetoothDevice device, boolean needClear) {
+        if (needClear) {
+            if (mDeviceData.size() > 0) {
+                mDeviceData.clear();
+            }
+        } else {
+            if (device == null) {
+                return;
+            }
+            mDeviceData.add(device);
+        }
+        mDeviceAdapter.setData(mDeviceData);
+    }
+
+    @Override
+    public void onUpdateSearchDevicesStatus(boolean enable) {
+
+    }
+
+    @Override
+    public void onNotifyConnectResult(Object object, String type) {
+//        if (BluetoothTools.ACTION_CONNECT_ERROR.equals(type)) {
+//            // 未发现设备
+//            mTvServerConnStatusTip.append("未发现设备" + mNotFoundCount + "次\r\n");
+//            mNotFoundCount++;
+//        }else
+        if (BluetoothTools.ACTION_CONNECT_SUCCESS.equals(type)) {
+            // 连接成功
+            mTvServerConnStatusTip.append("连接成功");
+        } else if (BluetoothTools.ACTION_DATA_TO_GAME.equals(type)) {
+            // 接收数据
+            TransmitBean data = (TransmitBean) object;
+            String msg = "from server " + new Date().toLocaleString()
+                    + " :\r\n" + data.getMsg() + "\r\n";
+            mEtChatContent.append(msg);
+        } else if (BluetoothTools.ACTION_CONNECT_ERROR.equals(type)) {
+            mEtChatContent.append("连接失败");
+        }
+    }
 }

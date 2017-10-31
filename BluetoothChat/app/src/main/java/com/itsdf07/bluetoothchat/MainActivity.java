@@ -14,13 +14,13 @@ public class MainActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initFirst();
+        initALog();
     }
 
     /**
      * 启动时就需要优先初始化的事情
      */
-    private void initFirst() {
+    private void initALog() {
         ALog.init()
                 .setTag(BluetoothTools.TAG)
                 .setLog(true)

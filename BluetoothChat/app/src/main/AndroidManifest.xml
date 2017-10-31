@@ -2,8 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.itsdf07.bluetoothchat">
 
-    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <!-- 管理蓝牙设备的权限 -->
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!-- 使用蓝牙设备的权限 -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+
+    <!--6.0之后蓝牙扫描的广播监听的权限-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:allowBackup="true"

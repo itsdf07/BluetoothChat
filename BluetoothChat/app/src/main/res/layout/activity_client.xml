@@ -4,12 +4,27 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tv_clientConnTip"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="10dip"
-        android:layout_marginTop="10dp" />
+        android:layout_height="50dp">
+
+        <TextView
+            android:id="@+id/tv_clientConnTip"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="10dip"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical" />
+
+        <Button
+            android:id="@+id/btn_searchServer"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_margin="5dp"
+            android:text="搜索" />
+
+
+    </RelativeLayout>
 
     <EditText
         android:id="@+id/et_clientChatContent"
@@ -30,5 +45,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="发送" />
+
+    <ListView
+        android:id="@+id/lv_devices"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
 </LinearLayout>

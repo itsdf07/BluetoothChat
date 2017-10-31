@@ -13,6 +13,7 @@ import android.os.Message;
  * 蓝牙通讯线程
  */
 public class BluetoothCommunThread extends Thread {
+
 	private Handler serviceHandler; // 与Service通信的Handler
 	private BluetoothSocket socket;
 	private ObjectInputStream inStream; // 对象输入流

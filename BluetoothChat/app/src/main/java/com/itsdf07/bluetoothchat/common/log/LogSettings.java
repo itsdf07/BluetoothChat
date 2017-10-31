@@ -29,7 +29,7 @@ public final class LogSettings {
     /**
      * 是否打印线程名称
      */
-    private boolean isShowThreadInfo = true;
+    private boolean isShowThreadInfo = false;
 
     private LogAdapterImpl logAdapter;
 
