@@ -20,6 +20,7 @@
             android:id="@+id/btn_searchServer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:layout_alignParentRight="true"
             android:layout_margin="5dp"
             android:text="搜索" />
 
@@ -32,6 +33,7 @@
         android:layout_height="150dp"
         android:layout_margin="5dp"
         android:background="#aaa"
+        android:gravity="top"
         android:cursorVisible="false" />
 
     <EditText
