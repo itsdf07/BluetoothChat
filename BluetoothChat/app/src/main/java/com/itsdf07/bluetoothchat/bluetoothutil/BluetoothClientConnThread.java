@@ -13,7 +13,10 @@ import com.itsdf07.bluetoothchat.common.log.ALog;
  * 蓝牙客户端连接线程
  */
 public class BluetoothClientConnThread extends Thread {
-    private Handler mServiceMainHandler; // 用于向客户端Service回传消息的handler
+    /**
+     * 用于向客户端Service回传消息的handler
+     */
+    private Handler mClientMainHandler;
     private BluetoothDevice mBluetoothDevice; // 服务器设备
     private BluetoothSocket mSocket; // 通信Socket
 
@@ -21,7 +24,7 @@ public class BluetoothClientConnThread extends Thread {
      * 构造函数
      */
     public BluetoothClientConnThread(Handler handler, BluetoothDevice bluetoothDevice) {
-        this.mServiceMainHandler = handler;
+        this.mClientMainHandler = handler;
         this.mBluetoothDevice = bluetoothDevice;
     }
 
@@ -39,13 +42,13 @@ public class BluetoothClientConnThread extends Thread {
             }
             ALog.e("ex = %s", ex.getMessage());
             // 发送连接失败消息
-            mServiceMainHandler.obtainMessage(BluetoothTools.MESSAGE_CONNECT_ERROR)
+            mClientMainHandler.obtainMessage(BluetoothTools.MESSAGE_CONNECT_ERROR)
                     .sendToTarget();
             return;
         }
 
         // 发送连接成功消息，消息的obj参数为连接的socket
-        Message msg = mServiceMainHandler.obtainMessage();
+        Message msg = mClientMainHandler.obtainMessage();
         msg.what = BluetoothTools.MESSAGE_CONNECT_SUCCESS;
         msg.obj = mSocket;
         msg.sendToTarget();

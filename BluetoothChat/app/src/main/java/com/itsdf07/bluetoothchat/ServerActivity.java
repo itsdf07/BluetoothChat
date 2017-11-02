@@ -2,11 +2,15 @@ package com.itsdf07.bluetoothchat;
 
 import java.util.Date;
 
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.View;
@@ -22,7 +26,7 @@ import com.itsdf07.bluetoothchat.bluetoothutil.TransmitBean;
 import com.itsdf07.bluetoothchat.common.log.ALog;
 
 
-public class ServerActivity extends AppCompatActivity {
+public class ServerActivity extends AppCompatActivity implements BluetoothServerService.IServerCallback {
     /**
      * 服务端与客户端是否连接成功的提示
      */
@@ -39,6 +43,8 @@ public class ServerActivity extends AppCompatActivity {
      * 聊天发送按钮
      */
     private Button mBtnSendMsg;
+
+    private BluetoothServerService mServerService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,53 +74,16 @@ public class ServerActivity extends AppCompatActivity {
 
     private void initData() {
         // 开启后台service
-        Intent startService = new Intent(this, BluetoothServerService.class);
-        startService(startService);
-
-        // 注册BoradcasrReceiver
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothTools.ACTION_DATA_TO_GAME);
-        intentFilter.addAction(BluetoothTools.ACTION_CONNECT_SUCCESS);
-        intentFilter.addAction(BluetoothTools.ACTION_CONNECT_ERROR);
-        registerReceiver(mBroadcastReceiver, intentFilter);
+        onStartServerService();
     }
 
     @Override
     protected void onStop() {
         ALog.d("...");
         // 关闭后台Service
-        Intent startService = new Intent(BluetoothTools.ACTION_STOP_SERVICE);
-        sendBroadcast(startService);
-        unregisterReceiver(mBroadcastReceiver);
+        unbindService(mServerServiceConn);
         super.onStop();
     }
-
-    // 广播接收器
-    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            String action = intent.getAction();
-
-            if (BluetoothTools.ACTION_DATA_TO_GAME.equals(action)) {
-                // 接收数据
-                TransmitBean data = (TransmitBean) intent.getExtras().getSerializable(BluetoothTools.DATA);
-                String msg = "from client " + new Date().toLocaleString()
-                        + " :\r\n" + data.getMsg() + "\r\n";
-                mEtChatContent.append(msg);
-
-            } else if (BluetoothTools.ACTION_CONNECT_SUCCESS.equals(action)) {
-                // 连接成功
-                mTvClientConnStatusTip.setText("连接成功");
-                mBtnSendMsg.setEnabled(true);
-            } else if (BluetoothTools.ACTION_CONNECT_ERROR.equals(action)) {
-                //连接失败
-                mTvClientConnStatusTip.setText("连接失败");
-            }
-
-        }
-    };
-
 
     private OnClickListener onSendMsgClickListener = new OnClickListener() {
         @Override
@@ -127,10 +96,7 @@ public class ServerActivity extends AppCompatActivity {
                 // 发送消息
                 TransmitBean data = new TransmitBean();
                 data.setMsg(mEtSendMsg.getText().toString());
-                Intent sendDataIntent = new Intent(
-                        BluetoothTools.ACTION_DATA_TO_SERVICE);
-                sendDataIntent.putExtra(BluetoothTools.DATA, data);
-                sendBroadcast(sendDataIntent);
+                mServerService.onSendMsg(data);
 
                 msgContent = "to client " + new Date().toLocaleString()
                         + " :\r\n" + msgContent + "\r\n";
@@ -138,4 +104,50 @@ public class ServerActivity extends AppCompatActivity {
             }
         }
     };
+
+
+    /**
+     * 启动服务
+     */
+    private void onStartServerService() {
+        // 开启后台service
+        Intent startService = new Intent(ServerActivity.this, BluetoothServerService.class);
+        //绑定Service
+        bindService(startService, mServerServiceConn, Context.BIND_AUTO_CREATE);
+    }
+
+
+    ServiceConnection mServerServiceConn = new ServiceConnection() {
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            ALog.d(" ...");
+        }
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            //返回一个MsgService对象
+            mServerService = ((BluetoothServerService.ServerServiceBinder) service).getService();
+            if (mServerService != null) {
+                mServerService.setServerCallback(ServerActivity.this);
+            }
+        }
+    };
+
+    @Override
+    public void onNotifyConnectResult(Object object, String type) {
+        if (BluetoothTools.ACTION_CONNECT_SUCCESS.equals(type)) {
+            BluetoothDevice mBluetoothDevice = ((BluetoothSocket) object).getRemoteDevice();
+            // 连接成功
+            mTvClientConnStatusTip.setText("连接成功:" + mBluetoothDevice.getName() + "->" + mBluetoothDevice.getAddress());
+            mBtnSendMsg.setEnabled(true);
+        } else if (BluetoothTools.ACTION_DATA_TO_GAME.equals(type)) {
+            // 接收数据
+            TransmitBean data = (TransmitBean) object;
+            String msg = "from client " + new Date().toLocaleString()
+                    + " :\r\n" + data.getMsg() + "\r\n";
+            mEtChatContent.append(msg);
+        } else if (BluetoothTools.ACTION_CONNECT_ERROR.equals(type)) {
+            mEtChatContent.append("连接失败\r\n");
+        }
+    }
 }

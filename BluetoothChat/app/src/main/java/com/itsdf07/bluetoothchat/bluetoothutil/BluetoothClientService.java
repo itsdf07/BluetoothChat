@@ -59,31 +59,24 @@ public class BluetoothClientService extends Service {
      */
     private BluetoothCommunThread mCommunThread;
 
-    // 接收其他线程消息的Handler
     Handler mMainHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             ALog.d("msg.what = %s", msg.what);
             // 处理消息
             switch (msg.what) {
-                case BluetoothTools.MESSAGE_CONNECT_ERROR:
-                    // 连接错误
-                    // 发送连接错误广播
+                case BluetoothTools.MESSAGE_CONNECT_ERROR:// 连接错误
                     mClientCallback.onNotifyConnectResult(null, BluetoothTools.ACTION_CONNECT_ERROR);
                     break;
-                case BluetoothTools.MESSAGE_CONNECT_SUCCESS:
-                    // 连接成功
-
+                case BluetoothTools.MESSAGE_CONNECT_SUCCESS:// 连接成功
                     // 开启通讯线程
                     mCommunThread = new BluetoothCommunThread(mMainHandler, (BluetoothSocket) msg.obj);
                     mCommunThread.start();
 
-                    // 发送连接成功广播
-                    mClientCallback.onNotifyConnectResult(null, BluetoothTools.ACTION_CONNECT_SUCCESS);
+                    mClientCallback.onNotifyConnectResult(msg.obj, BluetoothTools.ACTION_CONNECT_SUCCESS);
                     break;
-                case BluetoothTools.MESSAGE_READ_OBJECT:
-                    // 读取到对象
-                    // 发送数据广播（包含数据对象）
+                case BluetoothTools.MESSAGE_READ_OBJECT: // 读取到对象
+                    // 数据回调（包含数据对象）
                     mClientCallback.onNotifyConnectResult(msg.obj, BluetoothTools.ACTION_DATA_TO_GAME);
                     break;
             }

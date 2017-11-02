@@ -14,10 +14,11 @@
     <EditText
         android:id="@+id/et_serverChatContent"
         android:layout_width="match_parent"
-        android:layout_height="150dip"
-        android:layout_margin="5dip"
+        android:layout_height="150dp"
+        android:layout_margin="5dp"
         android:background="#aaa"
-        android:cursorVisible="false" />
+        android:cursorVisible="false"
+        android:gravity="top" />
 
     <EditText
         android:id="@+id/et_serverSendMsg"

@@ -1,0 +1,44 @@
+问题记录
+一、关于以下代码中出现应用ANR问题:socket.getInputStream()
+源码：
+    /**
+     * 构造函数
+     *
+     * @param handler 用于接收消息
+     * @param socket
+     */
+    public BluetoothCommunThread(Handler handler, BluetoothSocket socket) {
+        this.serviceHandler = handler;
+        this.socket = socket;
+        try {
+            this.outStream = new ObjectOutputStream(socket.getOutputStream());
+            this.inStream = new ObjectInputStream(new BufferedInputStream(
+                    socket.getInputStream()));
+        } catch (Exception e) {
+            try {
+                socket.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+            // 发送连接失败消息
+            serviceHandler.obtainMessage(BluetoothTools.MESSAGE_CONNECT_ERROR).sendToTarget();
+            e.printStackTrace();
+        }
+    }
+traces文件：
+    doc路径下的traces_socket.getInputStream.txt
+分析：
+    1.背景：
+    在Socket通信中，当我们希望传输对象时，往往会用到输入/输出对象流。
+    ObjectInputStream in=new ObjectInputStream(socket.getInputStream());
+    ObjectOutputStream out=new ObjectOutputStream(socket.getOutputStream());
+
+    2.问题：
+    当程序调用socket.getInputStream()程序被被卡住。
+
+    3.原因：
+    socket.getInputStream()方法会导致程序阻塞，直到inputStream收到对方发过来的报文消息，程序才会继续往下执行。
+    public ObjectInputStream(InputStream in) throws IOException的官方API显示：
+        Creates an ObjectInputStream that reads from the specified InputStream.
+        A serialization stream header is read from the stream and verified.
+        This constructor will block until the corresponding ObjectOutputStream has written and flushed the header. [1]

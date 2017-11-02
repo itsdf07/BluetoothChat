@@ -5,6 +5,7 @@ import java.util.Date;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -189,14 +190,10 @@ public class ClientActivity extends AppCompatActivity implements
 
     @Override
     public void onNotifyConnectResult(Object object, String type) {
-//        if (BluetoothTools.ACTION_CONNECT_ERROR.equals(type)) {
-//            // 未发现设备
-//            mTvServerConnStatusTip.append("未发现设备" + mNotFoundCount + "次\r\n");
-//            mNotFoundCount++;
-//        }else
         if (BluetoothTools.ACTION_CONNECT_SUCCESS.equals(type)) {
+            BluetoothDevice mBluetoothDevice = ((BluetoothSocket) object).getRemoteDevice();
             // 连接成功
-            mTvServerConnStatusTip.append("连接成功");
+            mTvServerConnStatusTip.setText("连接成功:" + mBluetoothDevice.getName() + "->" + mBluetoothDevice.getAddress());
         } else if (BluetoothTools.ACTION_DATA_TO_GAME.equals(type)) {
             // 接收数据
             TransmitBean data = (TransmitBean) object;
@@ -204,7 +201,7 @@ public class ClientActivity extends AppCompatActivity implements
                     + " :\r\n" + data.getMsg() + "\r\n";
             mEtChatContent.append(msg);
         } else if (BluetoothTools.ACTION_CONNECT_ERROR.equals(type)) {
-            mEtChatContent.append("连接失败");
+            mEtChatContent.append("连接失败\r\n");
         }
     }
 }
