@@ -134,7 +134,7 @@ public class ClientActivity extends AppCompatActivity implements
                         data.setMsg(msgContent);
                         mClientService.onSendMsg(data);
 
-                        msgContent = "to remote " + new Date().toLocaleString()
+                        msgContent = "to server " + new Date().toLocaleString()
                                 + " :\r\n" + msgContent + "\r\n";
                         mEtChatContent.append(msgContent);
                     }
